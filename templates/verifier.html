@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Verifier Dashboard</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;padding:20px;max-width:1100px;margin:auto}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}th{background:#f3f3f3}</style>
+  </head>
+  <body>
+    <h1>Verifier Dashboard</h1>
+    <div id="apps"></div>
+
+    <script>
+      async function load() {
+        const r = await fetch('/api/applications')
+        const apps = await r.json()
+        const container = document.getElementById('apps')
+        if (apps.length === 0) container.innerText = 'No applications yet.'
+        else {
+          let html = '<table><tr><th>ID</th><th>Name</th><th>Email</th><th>Amount</th><th>Status</th><th>Documents</th><th>Actions</th></tr>'
+          for (const a of apps) {
+            const docs = a.documents.map(d => `<a href="/uploads/${d.filename}" target="_blank">${d.original_filename}</a>`).join('<br>')
+            html += `<tr><td>${a.id}</td><td>${a.name}</td><td>${a.email}</td><td>${a.amount}</td><td>${a.status}</td><td>${docs}</td><td>`
+            html += `<button onclick="action(${a.id}, 'verify')">Verify</button> <button onclick="action(${a.id}, 'send_back')">Send Back</button>`
+            html += `</td></tr>`
+          }
+          html += '</table>'
+          container.innerHTML = html
+        }
+      }
+
+      async function action(id, act) {
+        const comment = prompt('Enter verifier comment (optional)')
+        const res = await fetch(`/api/applications/${id}/verify`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action: act, comment})})
+        const data = await res.json()
+        if (res.ok) alert('Application ' + data.status)
+        else alert('Error: ' + (data.error || JSON.stringify(data)))
+        load()
+      }
+
+      load()
+    </script>
+  </body>
+</html>
